@@ -1,24 +1,26 @@
-
-
 #include "LPD8806.h"
 #include "SPI.h"
+#include <Keypad.h>
 
 //*****************************************************************************
 // DECLARING GLOBAL VARIABLES
 //*****************************************************************************
-boolean audio_sensor = true ;
+boolean audio_sensor = true;
 //---------------------------------------------------------------------------------
 // SPECTRUM ANALZER VARIABLES
 //---------------------------------------------------------------------------------
 int SpectrumLeft[7];
 int SpectrumRight[7];
+byte scaleLow;
+byte scaleMid;
+byte scaleHigh;
 //---------------------------------------------------------------------------------
 // LED BOARD DIMENSIONS
 //---------------------------------------------------------------------------------
-const int numPixels = 1792; // strip.numPixels();
+const int numPixels = 1536; // strip.numPixels();
 const int cols = 56;
 const int rows = 32;
-const int NumWindows = 7;
+const int NumWindows = 6;
 //---------------------------------------------------------------------------------
 // MICROCONTROLLER PINS
 //---------------------------------------------------------------------------------
@@ -88,7 +90,7 @@ int pixelFocus = 0; // For tracking location of etch-a-sketch "cursor"
 const int Maxdrops = 40;
 int drops[Maxdrops][3];// Declare 2D array
 int dropNum = 30;
-int blank_screen = 1;
+int blank_screen = 0;
 int pixel;
 int pixel_above;
 int blue_true;
@@ -108,6 +110,24 @@ float strobe_increment = 2 - 0.5*(strobe_length/1000);
 //AUDIO INPUT VARIABLES
 //---------------------------------------------------------------------------------
 int readA0,readA1,readA2;
+//---------------------------------------------------------------------------------
+//KEYPAD VARIABLES
+//---------------------------------------------------------------------------------
+const byte ROWS = 4; //four rows
+const byte COLS = 3; //three columns
+//define the symbols on the buttons of the keypads
+char hexaKeys[ROWS][COLS] = {
+  {'1','2','3'},
+  {'4','5','6'},
+  {'7','8','9'},
+  {'*','0','#'}
+};
+byte rowPins[ROWS] = {15, 16, 17, 18}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {19, 20, 21}; //connect to the column pinouts of the keypad
+//Create the Keypad object
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
+boolean window_selection_mode;
+boolean window_behavior_mode;
 //---------------------------------------------------------------------------------
 // DYNAMIC VARIABLES
 //---------------------------------------------------------------------------------
@@ -147,16 +167,16 @@ void setup() {
   window_Control[4][1] = 1279;
   window_Control[5][0] = 1280;
   window_Control[5][1] = 1535;
-  window_Control[6][0] = 1536;
-  window_Control[6][1] = 1791;
+  //window_Control[6][0] = 1536;
+  //window_Control[6][1] = 1791;
   //WINDOWS STATES
   window_Control[0][2] = 7;
   window_Control[1][2] = 8;
   window_Control[2][2] = 8;
   window_Control[3][2] = 8;
   window_Control[4][2] = 8;
-  window_Control[5][2] = 8;
-  window_Control[6][2] = 7;
+  window_Control[5][2] = 7;
+  //window_Control[6][2] = 7;
 }
 
 //*****************************************************************************
@@ -164,20 +184,21 @@ void setup() {
 //*****************************************************************************
 void loop() {
 
-  if (Serial.available() > 0) {
+  //Check the Keypad for input
+  char customKey = customKeypad.getKey();
+  
+  if (Serial.available() > 0){
     selectColourMode(); // Returns "switch_state" variable.
-    readAudio(audio); // Calls readAudio function to update 3 audio channel readings.
-    scaleAudio(audio); //Scales to Audio channel values
-    if ((readCapacitivePin(capSensePin) > touchedCutoff ) || (readCapacitivePin(capSensePin2) > touchedCutoff )) {
-      displayColourMode(audio);
-    }
   }
-  else { //If now new color mode inputed there is no need to check Serial Input
-    readAudio(audio);
-    scaleAudio(audio);
-    if ((readCapacitivePin(capSensePin) > touchedCutoff ) || (readCapacitivePin(capSensePin2) > touchedCutoff )) {
-      displayColourMode(audio);
-    }
+  else if (customKey){
+    //Serial.println(customKey);
+    KeypadSelectColourMode(customKey);
+  }
+  selectColourMode(); // Returns "switch_state" variable.
+  readAudio(audio); // Calls readAudio function to update 3 audio channel readings.
+  scaleAudio(audio); //Scales to Audio channel values
+  if ((readCapacitivePin(capSensePin) > touchedCutoff ) || (readCapacitivePin(capSensePin2) > touchedCutoff )) {
+    displayColourMode(audio);
   }
   if(is_strobe == true) {
     strobe();
@@ -221,13 +242,19 @@ void readAudio(uint8_t audioLev[]) {
 // SCALE AUDIO LEVEL
 //---------------------------------------------------------------------------------
 void scaleAudio(uint8_t audioLev[]) {
-  if (audioLev[0] < 15 ) {
+  
+scaleLow = analogRead(A6) % 100;
+scaleMid = analogRead(A7) % 100;
+scaleHigh = analogRead(A8) % 100;
+  
+  
+  if (audioLev[0] < scaleLow ) {
     audioLev[0] = 0;
   }
-  if (audioLev[1] < 50 ) {
+  if (audioLev[1] < scaleMid ) {
     audioLev[1] = 0;
   }
-  if (audioLev[2] < 15) {
+  if (audioLev[2] < scaleHigh) {
     audioLev[2] = 0;
   }
 }
@@ -241,7 +268,7 @@ void scaleAudio(uint8_t audioLev[]) {
 //---------------------------------------------------------------------------------
 int selectColourMode() {
   incomingByte = Serial.read();
-  blank_screen = 1;
+  //blank_screen = 1;
   lastSerialChar = incomingByte; // Record the last serial char entered
   // if(second_input == true)
   // {
@@ -346,6 +373,7 @@ int selectColourMode() {
     }
   }
   else if (incomingByte == 'f') {
+    blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
       window_Control[i][2] = 10;
     }
@@ -385,6 +413,156 @@ int selectColourMode() {
 int selectWindowColourMode(int window, int switch_state)
 {
 
+}
+//---------------------------------------------------------------------------------
+// SELECT BEHAVIOR USING THE KEYPAD
+//---------------------------------------------------------------------------------
+int KeypadSelectColourMode(char incomingByte) {
+  //blank_screen = 1;
+  lastSerialChar = incomingByte; // Record the last serial char entered
+
+  if(incomingByte == '*')
+  {
+    window_selection_mode = 1;
+    Serial.print("Select a Window\n");
+  }
+
+  else if(window_selection_mode == true && incomingByte >= '0' && incomingByte < '8')
+  {
+    window_behavior_mode = true;
+    window = incomingByte - '0';
+    window_selection_mode = false;
+    Serial.print("Selected window: ");
+    Serial.println(window);
+  }
+  else if (incomingByte == '1') {//triples
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 1;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 1;
+      }
+    }
+  }
+  else if (incomingByte == 'b') {
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 2;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 2;
+      }
+    }
+  }
+  else if (incomingByte == 'c') {
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 3;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 3;
+      }
+    }
+  }
+  else if (incomingByte == 'd') {
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 5;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 5;
+      }
+    }
+  }
+  else if (incomingByte == '2') {//equalizer
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 7;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 7;
+      }
+    }
+  }
+  else if (incomingByte == '4') {//full screen etch 
+    blank_screen = 1;
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 8;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 8;
+      }
+    }
+  }
+  else if (incomingByte == 'r') {
+    if(window_behavior_mode == true)
+    {
+      window_Control[window-1][2] = 9;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 9;
+      }
+    }
+  }
+  else if (incomingByte == '3') {//drops
+  blank_screen = 1;
+    for (byte i=0; i < NumWindows; i++){
+      window_Control[i][2] = 10;
+    }
+  }
+  else if (incomingByte == 'o') {
+    if(second_input == true)
+    {
+      window_Control[window-1][2] = 0;
+      window_behavior_mode = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = 0;
+      }
+    }
+  }
+  else if (incomingByte == 'l') {
+    strobe_value = stobe_height;
+    strobe_time = millis();
+    is_strobe = true;
+  }
+  // else if (incomingByte == 'l') {
+  // strobe_value = stobe_height;
+  // strobe_time = millis();
+  // is_strobe = true;
+  // }
+  else if(inChar =='\0') { // Patryk
+    //Do nothing
+  }
+  else {
+    switch_state = 0;
+  }
+  return switch_state;
 }
 //---------------------------------------------------------------------------------
 // WINDOW BEHAVIORS
@@ -803,6 +981,16 @@ void equalizer(int cols, char color, int audioLevel)
 //---------------------------------------------------------------------------------
 void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
 {
+  if (blank_screen == 1)
+  {
+    for (int i=0; i < numPixels; i+=3)
+    {
+      strip.setPixelColor(i, 0, 0, 0);
+      strip.setPixelColor(i+1, 0, 0, 0);
+      strip.setPixelColor(i+2, 0, 0, 0);
+    }
+    blank_screen = 0;
+  }
   //Interact to the Music
   // for (int i = 0; i < numPixels; i++){
   // //Extracting individual colors
@@ -817,15 +1005,16 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   colsTot = (col_range) - 1;
   rowsTot = (rows/2) - 1;
   //Serial.println(colsTot);
+  
   // Determine column location.
-  readA0 = analogRead(A4);
+  readA0 = analogRead(A6);
   col = ((long)readA0*((long)colsTot+1))/sensorMax ;
   if (readA0 == sensorMax) {
     col = colsTot;
   }
 
   // Determine row location.
-  readA1 = analogRead(A3);
+  readA1 = analogRead(A7);
   row = (readA1*(rowsTot+1))/sensorMax;
   // if (row == (rowsTot + 1)) { // Fix condition that readA0 = 1023.
   if (readA1 == sensorMax) {
@@ -839,9 +1028,9 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   }
 
   // Determine pixel color
-  readA2 = analogRead(A5)/3; // Reads a value from 0 to 1023. Scale to be less than 384.
+  readA2 = analogRead(A8)/3; // Reads a value from 0 to 1023. Scale to be less than 384.
   etch_color = Wheel(readA2);
-
+ 
   // Display the crusor pixel
   pixelFocus = (rowsTot+1)*col+row;
   strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2),etch_color);
@@ -971,4 +1160,3 @@ void rain_Drops(int first, int last, uint8_t audioLev[])
     }
   }
 }
-
