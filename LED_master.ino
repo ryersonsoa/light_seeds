@@ -56,7 +56,8 @@ uint8_t audio[3]; //"audio" array. Able to hold 3 audio channel levels.
 //---------------------------------------------------------------------------------
 // IMAGE ARRAY VARIABLES
 //---------------------------------------------------------------------------------
-char memory[numPixels/2];
+int memory[numPixels/2];
+int memory_location = -1;
 //char red_values[numPixels];
 //char green_values[numPixels];
 //char blue_values[numPixels];
@@ -84,6 +85,8 @@ int pixelPrev = 0;
 uint32_t etch_color; // Pixel color.
 uint32_t cPrev; // Pixel color during previous loop.`
 int pixelFocus = 0; // For tracking location of etch-a-sketch "cursor"
+int cursor_location;
+boolean etch_interaction_mode = true;
 //---------------------------------------------------------------------------------
 // DROPS VARIABLES
 //---------------------------------------------------------------------------------
@@ -243,11 +246,10 @@ void readAudio(uint8_t audioLev[]) {
 //---------------------------------------------------------------------------------
 void scaleAudio(uint8_t audioLev[]) {
   
-scaleLow = analogRead(A6) % 100;
-scaleMid = analogRead(A7) % 100;
-scaleHigh = analogRead(A8) % 100;
-  
-  
+scaleLow = analogRead(A5) / 10;
+scaleMid = analogRead(A4) / 10;
+scaleHigh = analogRead(A3) / 10;
+    
   if (audioLev[0] < scaleLow ) {
     audioLev[0] = 0;
   }
@@ -983,6 +985,7 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
 {
   if (blank_screen == 1)
   {
+    memory_location = -1;
     for (int i=0; i < numPixels; i+=3)
     {
       strip.setPixelColor(i, 0, 0, 0);
@@ -992,14 +995,26 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
     blank_screen = 0;
   }
   //Interact to the Music
-  // for (int i = 0; i < numPixels; i++){
-  // //Extracting individual colors
-  // int r= decodeR(memory[i]);
-  // int g= decodeG(memory[i]);
-  // int b= decodeB(memory[i]);
-  // //Displaying the color
-  // strip.setPixelColor(i, audioLev[0]*r,audioLev[1]*g,audioLev[2]*b);
-  // }
+  if(etch_interaction_mode == true)
+  {
+    Serial.print("Locations:");
+    Serial.println(memory_location);
+    for (int i = 0; i <= memory_location; i++){
+    Serial.println(memory[i]);
+    //Extracting individual colors from the displays values
+    uint16_t value = strip.getPixelColor(memory[i]);
+    byte r= decodeR(value);
+    byte g= decodeG(value);
+    byte b= decodeB(value);
+    Serial.print("Color Values:\n");
+    Serial.println(r);
+    Serial.println(g);
+    Serial.println(b);
+    //Displaying the color
+    strip.setPixelColor(memory[i], audioLev[0]*r,audioLev[1]*g,audioLev[2]*b);
+    }
+  }
+  
   //Determine the Boundries
   int col_range = last_col - first_col + 1;
   colsTot = (col_range) - 1;
@@ -1020,7 +1035,6 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   if (readA1 == sensorMax) {
     row = rowsTot;
   }
-  //Serial.println(readA1);
 
   // Check if pixelFocus has changed its location.
   if ( (col != colPrev) || (row != rowPrev) ) {
@@ -1035,27 +1049,18 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   pixelFocus = (rowsTot+1)*col+row;
   strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2),etch_color);
   strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2+1),etch_color);
-  //Saving to Memory the pixel location and the color
-  memory[pixelFocus] = encode(etch_color >> 16 & 0xFF, etch_color >> 8 & 0xFF, etch_color >> 0 & 0xFF);
-  // Serial.print("Red: ");
-  // Serial.println(etch_color >> 16 & 0xFF);
-  // Serial.print("Green: ");
-  // Serial.println(etch_color >> 8 & 0xFF);
-  // Serial.print("Blue: ");
-  // Serial.println(etch_color >> 0 & 0xFF);
-  // byte test = encode((byte)etch_color >> 16 & 0xFF, (byte)etch_color >> 8 & 0xFF, (byte)etch_color >> 0 & 0xFF);
-  // Serial.print("Red decoded: ");
-  // Serial.println(decodeR(test));
-  // Serial.print("Green decoded: ");
-  // Serial.println(decodeG(test));
-  // Serial.print("Blue decoded: ");
-  // Serial.println(decodeB(test));
 
   //Paint the Previous Pixels
   if (pixelChange == 1) {
     pixelPrev = (rowsTot+1)*colPrev+rowPrev;
-    strip.setPixelColor(map_coord((first_col-1)*rows + pixelPrev*2),cPrev);
-    strip.setPixelColor(map_coord((first_col-1)*rows + pixelPrev*2+1),cPrev);
+    
+    memory_location = memory_location + 1;
+    memory[memory_location] = map_coord((first_col-1)*rows + pixelPrev*2);
+    strip.setPixelColor(memory[memory_location],cPrev);
+     
+    memory_location = memory_location + 1;
+    memory[memory_location] =map_coord((first_col-1)*rows + pixelPrev*2+1);
+    strip.setPixelColor(memory[memory_location],cPrev);
   }
 
   if ( ( (millis() % 600) < 300) && (pixelChange != 1) ) {
