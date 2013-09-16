@@ -56,8 +56,7 @@ uint8_t audio[3]; //"audio" array. Able to hold 3 audio channel levels.
 //---------------------------------------------------------------------------------
 // IMAGE ARRAY VARIABLES
 //---------------------------------------------------------------------------------
-int memory[numPixels/2];
-int memory_location = -1;
+byte memory[numPixels/2][3] = {};
 //char red_values[numPixels];
 //char green_values[numPixels];
 //char blue_values[numPixels];
@@ -82,8 +81,8 @@ int rowPrev = 0;
 int rowsTot = rows - 1; // Total rows - 1
 int pixelChange = 0; // Tracks if pixelFocus location has changed since last loop.
 int pixelPrev = 0;
-uint32_t etch_color; // Pixel color.
-uint32_t cPrev; // Pixel color during previous loop.`
+byte etch_color[3]; // Pixel color.
+byte cPrev[3]; // Pixel color during previous loop.`
 int pixelFocus = 0; // For tracking location of etch-a-sketch "cursor"
 int cursor_location;
 boolean etch_interaction_mode = true;
@@ -742,7 +741,7 @@ void strobe()
 //---------------------------------------------------------------------------------
 //Input a value 0 to 384 to get a color value.
 //The colours are a transition r - g - b - back to r
-uint32_t Wheel(uint16_t WheelPos)
+void Wheel(uint16_t WheelPos, byte *rgb)
 {
   byte r, g, b;
   switch(WheelPos / 128)
@@ -763,7 +762,10 @@ uint32_t Wheel(uint16_t WheelPos)
     g = 0; // green off
     break;
   }
-  return(strip.Color(r,g,b));
+  rgb[0] = r;
+  rgb[1] = g;
+  rgb[2] = b;
+  //return(strip.Color(r,g,b));
 }
 
 //---------------------------------------------------------------------------------
@@ -985,7 +987,6 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
 {
   if (blank_screen == 1)
   {
-    memory_location = -1;
     for (int i=0; i < numPixels; i+=3)
     {
       strip.setPixelColor(i, 0, 0, 0);
@@ -995,25 +996,24 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
     blank_screen = 0;
   }
   //Interact to the Music
-  if(etch_interaction_mode == true)
-  {
-    Serial.print("Locations:");
-    Serial.println(memory_location);
-    for (int i = 0; i <= memory_location; i++){
-    Serial.println(memory[i]);
-    //Extracting individual colors from the displays values
-    uint16_t value = strip.getPixelColor(memory[i]);
-    byte r= decodeR(value);
-    byte g= decodeG(value);
-    byte b= decodeB(value);
-    Serial.print("Color Values:\n");
-    Serial.println(r);
-    Serial.println(g);
-    Serial.println(b);
-    //Displaying the color
-    strip.setPixelColor(memory[i], audioLev[0]*r,audioLev[1]*g,audioLev[2]*b);
-    }
-  }
+//  if(etch_interaction_mode == true)
+//  {
+//    Serial.print("Locations:");
+//    for (int i = 0; i <= memory_location; i++){
+//    //Serial.println(memory[i]);
+//    //Extracting individual colors from the displays values
+//    //uint16_t value = strip.getPixelColor(memory[i]);
+//    //byte r= decodeR(value);
+//    //byte g= decodeG(value);
+//    //byte b= decodeB(value);
+//    Serial.print("Color Values:\n");
+//    //Serial.println(r);
+//    //Serial.println(g);
+//    //Serial.println(b);
+//    //Displaying the color
+//    //strip.setPixelColor(memory[i], audioLev[0]*r,audioLev[1]*g,audioLev[2]*b);
+//    }
+//  }
   
   //Determine the Boundries
   int col_range = last_col - first_col + 1;
@@ -1043,25 +1043,38 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
 
   // Determine pixel color
   readA2 = analogRead(A8)/3; // Reads a value from 0 to 1023. Scale to be less than 384.
-  etch_color = Wheel(readA2);
+  Wheel(readA2, etch_color);
  
   // Display the crusor pixel
   pixelFocus = (rowsTot+1)*col+row;
-  strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2),etch_color);
-  strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2+1),etch_color);
+  strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2),etch_color[0],etch_color[1],etch_color[2]);
+  strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2+1),etch_color[0],etch_color[1],etch_color[2]);
 
   //Paint the Previous Pixels
   if (pixelChange == 1) {
     pixelPrev = (rowsTot+1)*colPrev+rowPrev;
+        
+    strip.setPixelColor(map_coord((first_col-1)*rows + pixelPrev*2+1),cPrev[0],cPrev[1],cPrev[2]); 
     
-    memory_location = memory_location + 1;
-    memory[memory_location] = map_coord((first_col-1)*rows + pixelPrev*2);
-    strip.setPixelColor(memory[memory_location],cPrev);
-     
-    memory_location = memory_location + 1;
-    memory[memory_location] =map_coord((first_col-1)*rows + pixelPrev*2+1);
-    strip.setPixelColor(memory[memory_location],cPrev);
-  }
+    int location = map_coord((first_col-1)*rows + pixelPrev*2);
+    strip.setPixelColor(location,cPrev[0],cPrev[1],cPrev[2]);
+    
+    int array_location = ((location + 1)/2) -1 ;
+    //memory[0][0] = 1;
+    //memory[1][0] = 1;
+    //memory[2][0] = 1;
+    //memory[array_location][0] = cPrev[0];
+    //memory[array_location][1] = cPrev[1];
+    //memory[array_location][2] = cPrev[2];
+    
+    Serial.print("Saved Values\n");
+    Serial.println(map_coord((first_col-1)*rows + pixelPrev*2));
+    Serial.println(map_coord((first_col-1)*rows + pixelPrev*2+1));
+    Serial.println(array_location);
+    Serial.println(cPrev[0]);
+    Serial.println(cPrev[1]);
+    Serial.println(cPrev[2]);
+}
 
   if ( ( (millis() % 600) < 300) && (pixelChange != 1) ) {
     strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2),127,127,127);
@@ -1074,7 +1087,9 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   //Reset Variables
   colPrev = col;
   rowPrev = row;
-  cPrev = etch_color;
+  cPrev[0] = etch_color[0];
+  cPrev[1] = etch_color[1];
+  cPrev[2] = etch_color[2];
   pixelChange = 0; // Reset to check for pixelFocus changing.
 }
 //---------------------------------------------------------------------------------
