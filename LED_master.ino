@@ -995,12 +995,12 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   }
   //Interact to the Music
   if(etch_interaction_mode == true){
-    for (int i = 0; i <= numPixels ; i = i + 2)
+    for (int i = 0; i <= numPixels ; i = i + 2)// This need to be changed to only include the desired region 
     {
       if( counter % 2 == 0)
       {
         //Serial.println("IN HERE");
-        uint32_t packed_color = strip.getPixelColor(i);
+        uint32_t packed_color = strip.getPixelColor(i+1);
         uint8_t green = (packed_color >> 16) & 0x7f7f7f;
         uint8_t red =   (packed_color >> 8) & 0x7f7f7f;
         uint8_t blue =  (packed_color) & 0x7f7f7f;
@@ -1010,7 +1010,7 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
       else
       {
         //Serial.println("IN THERE");
-        uint32_t packed_color = strip.getPixelColor(i+1);
+        uint32_t packed_color = strip.getPixelColor(i);
         uint8_t green = (packed_color >> 16) & 0x7f7f7f;
         uint8_t red =   (packed_color >> 8) & 0x7f7f7f;
         uint8_t blue =  (packed_color) & 0x7f7f7f;
