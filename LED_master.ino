@@ -39,8 +39,7 @@ LPD8806 strip = LPD8806(numPixels);
 //---------------------------------------------------------------------------------
 // DEFAULT WINDOW CONTROL ARRAY
 //---------------------------------------------------------------------------------
-int window_Control[7][3] = {
-  0};
+int window_Control[7][3] = {0};
 int send_first;
 int send_last;
 int window;
@@ -51,15 +50,6 @@ boolean second_input = false;
 int touchedCutoff = 60; //Activation threshold for sensor
 int switch_state = 1; // Behavior selection variable
 uint8_t audio[3]; //"audio" array. Able to hold 3 audio channel levels.
-//uint32_t memory[numPixels/2]; //Stores Color of each pixel
-//uint32_t memory[1];
-//---------------------------------------------------------------------------------
-// IMAGE ARRAY VARIABLES
-//---------------------------------------------------------------------------------
-byte memory[numPixels/2][3] = {};
-//char red_values[numPixels];
-//char green_values[numPixels];
-//char blue_values[numPixels];
 //---------------------------------------------------------------------------------
 // COMMUNICATION VARIABLES
 //---------------------------------------------------------------------------------
@@ -67,8 +57,6 @@ int incomingByte;
 char inChar;
 char lastSerialChar; // Holds the last serial character received.
 char packet[4];
-//char *adress;
-//byte temp;
 //---------------------------------------------------------------------------------
 // ETCH A SKETCH VARIABLES
 //---------------------------------------------------------------------------------
@@ -119,7 +107,8 @@ int readA0,readA1,readA2;
 const byte ROWS = 4; //four rows
 const byte COLS = 3; //three columns
 //define the symbols on the buttons of the keypads
-char hexaKeys[ROWS][COLS] = {
+char hexaKeys[ROWS][COLS] = 
+{
   {'1','2','3'},
   {'4','5','6'},
   {'7','8','9'},
@@ -129,13 +118,9 @@ byte rowPins[ROWS] = {15, 16, 17, 18}; //connect to the row pinouts of the keypa
 byte colPins[COLS] = {19, 20, 21}; //connect to the column pinouts of the keypad
 //Create the Keypad object
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
-boolean window_selection_mode;
-boolean window_behavior_mode;
-//---------------------------------------------------------------------------------
-// DYNAMIC VARIABLES
-//---------------------------------------------------------------------------------
-//byte *test ;
-
+//Variables used in the keypad to assign individual window behaviors 
+boolean window_selection_mode; //Select the window
+boolean window_behavior_mode; //Select the behavior for that window 
 //*****************************************************************************
 // SETUP FUNCTION
 //*****************************************************************************
@@ -191,11 +176,10 @@ void loop() {
   char customKey = customKeypad.getKey();
   
   if (Serial.available() > 0){
-    selectColourMode(); // Returns "switch_state" variable.
+    selectColourMode(); // Returns "switch_state" variable
   }
   else if (customKey){
-    //Serial.println(customKey);
-    KeypadSelectColourMode(customKey);
+    KeypadSelectColourMode(customKey); // Returns "switch_state" variable
   }
   selectColourMode(); // Returns "switch_state" variable.
   readAudio(audio); // Calls readAudio function to update 3 audio channel readings.
@@ -228,12 +212,6 @@ void readAudio(uint8_t audioLev[]) {
     audioLev[0]=SpectrumRight[0]/10;
     audioLev[1]=SpectrumRight[3]/10;
     audioLev[2]=SpectrumRight[6]/10;
-    // Serial.print("Red:");
-    // Serial.print(SpectrumRight[0]/10);
-    // Serial.print(" Green:");
-    // Serial.print(SpectrumRight[3]/10);
-    // Serial.print(" Blue:");
-    // Serial.println(SpectrumRight[6]/10);
   }
   else{
     audioLev[0]= uint8_t(random(100,150));
@@ -270,12 +248,8 @@ scaleHigh = analogRead(A3) / 10;
 //---------------------------------------------------------------------------------
 int selectColourMode() {
   incomingByte = Serial.read();
-  //blank_screen = 1;
   lastSerialChar = incomingByte; // Record the last serial char entered
-  // if(second_input == true)
-  // {
-  // selectWindowColourMode(window,incomingByte);
-  // }
+
   if(incomingByte >= '0' && incomingByte < '8')
   {
     second_input = true;
@@ -283,7 +257,7 @@ int selectColourMode() {
     //Serial.print("INPUT: ");
     //Serial.println(window);
   }
-  else if (incomingByte == 'a') {
+  else if (incomingByte == 'a') {//Triples
     if(second_input == true)
     {
       window_Control[window-1][2] = 1;
@@ -296,7 +270,7 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 'b') {
+  else if (incomingByte == 'b') {//Vertical Bar #1
     if(second_input == true)
     {
       window_Control[window-1][2] = 2;
@@ -309,7 +283,7 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 'c') {
+  else if (incomingByte == 'c') {//Vertical Bar #2
     if(second_input == true)
     {
       window_Control[window-1][2] = 3;
@@ -322,7 +296,7 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 'd') {
+  else if (incomingByte == 'd') {//White Sparkle 
     if(second_input == true)
     {
       window_Control[window-1][2] = 5;
@@ -335,7 +309,7 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 'e') {
+  else if (incomingByte == 'e') {//Equalizer
     if(second_input == true)
     {
       window_Control[window-1][2] = 7;
@@ -348,7 +322,7 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 's') {
+  else if (incomingByte == 's') {//Etch and Sketch 
     if(second_input == true)
     {
       window_Control[window-1][2] = 8;
@@ -374,13 +348,13 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 'f') {
+  else if (incomingByte == 'f') {//Drops 
     blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
       window_Control[i][2] = 10;
     }
   }
-  else if (incomingByte == 'o') {
+  else if (incomingByte == 'o') {//RGB Sparkle
     if(second_input == true)
     {
       window_Control[window-1][2] = 0;
@@ -393,17 +367,12 @@ int selectColourMode() {
       }
     }
   }
-  else if (incomingByte == 'l') {
+  else if (incomingByte == 'l') { //Strobe 
     strobe_value = stobe_height;
     strobe_time = millis();
     is_strobe = true;
   }
-  // else if (incomingByte == 'l') {
-  // strobe_value = stobe_height;
-  // strobe_time = millis();
-  // is_strobe = true;
-  // }
-  else if(inChar =='\0') { // Patryk
+  else if(inChar =='\0') {
     //Do nothing
   }
   else {
