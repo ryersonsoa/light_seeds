@@ -169,7 +169,7 @@ void setup() {
   //---------------------------------------------------------------------------------
   // GEIGER COUNTER INTERRUPT SETUP
   //---------------------------------------------------------------------------------
-  //attachInterrupt(0, geiger, FALLING );
+  attachInterrupt(0, geiger, FALLING );
 }
 
 //*****************************************************************************
@@ -281,7 +281,7 @@ int selectColourMode() {
   else if (incomingByte == 'c') {modeSelect(3);} //Vertical Bar #2 
   else if (incomingByte == 'd') {modeSelect(5);} //White Sparkle 
   else if (incomingByte == 'e') {modeSelect(7);} //Equalizer
-  else if (incomingByte == 'o') {modeSelect(0);} //RGB Sparkle
+  else if (incomingByte == 'o') {modeSelect(0);} //Maker Faire Sparkle
   else if (incomingByte == 's') {modeSelect(8);  //Etch and Sketch 
      blank_screen = 1;} 
   else if (incomingByte == 'f') {                //Drops 
@@ -341,7 +341,8 @@ int KeypadSelectColourMode(char incomingByte) {
   else if (incomingByte == '8'){modeSelectKeypad(2);} //Vertical Band 
   else if (incomingByte == '6'){modeSelectKeypad(5);} //RGB Sparkle
   else if (incomingByte == '2'){modeSelectKeypad(7);} //Equalizer
-  else if (incomingByte == '5'){modeSelectKeypad(0);} //RGB Sparkle
+  else if (incomingByte == '5'){modeSelectKeypad(0);} //Maker Faire Sparkle
+  else if (incomingByte == '7'){modeSelectKeypad(4);} //Maker Faire Hom
   else if (incomingByte == '4')                      
    {blank_screen = 1;           modeSelectKeypad(8);} //Etch and Sketch
   else if (incomingByte == '3') {                     //Drops
@@ -427,10 +428,10 @@ void ColourModes(int switch_state, uint8_t audioLev[], int first, int last ) {
     }
   }
   //---------------------------------------------------------------------------------
-  // RANDOM RGB SPARKLE
+  // MAKER FAIRE SPARKLE
   //---------------------------------------------------------------------------------
-  else if (switch_state == 0) {//RBG Sparkle
-    RGB_Sparkle(first,last,audioLev);
+  else if (switch_state == 0) {
+    maker_faire(first,last,audioLev);
   }
   //---------------------------------------------------------------------------------
   // EQUALIZER
@@ -523,6 +524,18 @@ void strobe()
       strobe_value = strobe_value - strobe_increment;
     }
   }
+}
+//---------------------------------------------------------------------------------
+// GEIGER STROBE FUNCTION
+//---------------------------------------------------------------------------------
+//Function has interupt status so it is constantly monitered for input
+void geiger()
+{
+    Serial.println("EVENT");
+    //Initiates the Strobe Behavior
+    strobe_value = stobe_height;
+    strobe_time = millis();
+    is_strobe = true;
 }
 
 //---------------------------------------------------------------------------------
@@ -723,20 +736,25 @@ void Vertical_Band(int first, int last, char color, uint8_t audioLev[])
     }
   }
 }
-
 //---------------------------------------------------------------------------------
-// Random RGB Sparkle
+// Maker Faire Sparkle
 //---------------------------------------------------------------------------------
-void RGB_Sparkle(int first, int last, uint8_t audioLev[])
+void maker_faire(int first, int last, uint8_t audioLev[])
 {
-  for (int i = 0; i < 6; i++) {
-    strip.setPixelColor(random(first,last), audioLev[0] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor(random(first,last), strobe_value, audioLev[1] + strobe_value, strobe_value);
-    strip.setPixelColor(random(first,last), strobe_value, strobe_value, audioLev[2] + strobe_value);
-    delay(10);
+  for (int i = 0; i < 12; i++) { //Multiple iterations so that more color change at the same time
+    strip.setPixelColor(random(first,last),127 + strobe_value, strobe_value, strobe_value); //red
+    strip.setPixelColor(random(first,last),strobe_value, 100 + strobe_value, strobe_value); //green
+    strip.setPixelColor(random(first,last), 20 + strobe_value, 20 + strobe_value, 127 + strobe_value);
+    strip.setPixelColor(random(first,last), 127 + strobe_value, 127 + strobe_value, strobe_value); //yellow
+    strip.setPixelColor(random(first,last), 127 + strobe_value, strobe_value, 127 + strobe_value); // magenta
+    strip.setPixelColor(random(first,last), strobe_value, 40 + strobe_value, strobe_value ); // dark green
+      for (int i = 0; i < 10; i++){
+      strip.setPixelColor(random(first,last),0,0,0);
+      strip.setPixelColor(random(first,last),0,0,0);
+      strip.setPixelColor(random(first,last),0,0,0);
+      }
   }
 }
-
 //---------------------------------------------------------------------------------
 // EQUALIZER
 //---------------------------------------------------------------------------------
