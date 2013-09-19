@@ -165,6 +165,11 @@ void setup() {
   window_Control[4][2] = 8;
   window_Control[5][2] = 7;
   //window_Control[6][2] = 7;
+  
+  //---------------------------------------------------------------------------------
+  // GEIGER COUNTER INTERRUPT SETUP
+  //---------------------------------------------------------------------------------
+  //attachInterrupt(0, geiger, FALLING );
 }
 
 //*****************************************************************************
@@ -246,6 +251,22 @@ scaleHigh = analogRead(A3) / 10;
 //---------------------------------------------------------------------------------
 // SELECT BEHAVIOR
 //---------------------------------------------------------------------------------
+//Helper function for selectColourMode()   
+void modeSelect(int switch_state)
+{
+    if(second_input == true)
+    {
+      window_Control[window-1][2] = switch_state;
+      second_input = false;
+    }
+    else
+    {
+      for (byte i=0; i < NumWindows; i++){
+        window_Control[i][2] = switch_state;
+      }
+    }
+}
+
 int selectColourMode() {
   incomingByte = Serial.read();
   lastSerialChar = incomingByte; // Record the last serial char entered
@@ -254,142 +275,52 @@ int selectColourMode() {
   {
     second_input = true;
     window = incomingByte - '0';
-    //Serial.print("INPUT: ");
-    //Serial.println(window);
   }
-  else if (incomingByte == 'a') {//Triples
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 1;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 1;
-      }
-    }
-  }
-  else if (incomingByte == 'b') {//Vertical Bar #1
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 2;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 2;
-      }
-    }
-  }
-  else if (incomingByte == 'c') {//Vertical Bar #2
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 3;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 3;
-      }
-    }
-  }
-  else if (incomingByte == 'd') {//White Sparkle 
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 5;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 5;
-      }
-    }
-  }
-  else if (incomingByte == 'e') {//Equalizer
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 7;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 7;
-      }
-    }
-  }
-  else if (incomingByte == 's') {//Etch and Sketch 
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 8;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 8;
-      }
-    }
-  }
-  else if (incomingByte == 'r') {
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 9;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 9;
-      }
-    }
-  }
-  else if (incomingByte == 'f') {//Drops 
+  else if (incomingByte == 'a') {modeSelect(1);} //Triples
+  else if (incomingByte == 'b') {modeSelect(2);} //Vertical Bar #1
+  else if (incomingByte == 'c') {modeSelect(3);} //Vertical Bar #2 
+  else if (incomingByte == 'd') {modeSelect(5);} //White Sparkle 
+  else if (incomingByte == 'e') {modeSelect(7);} //Equalizer
+  else if (incomingByte == 'o') {modeSelect(0);} //RGB Sparkle
+  else if (incomingByte == 's') {modeSelect(8);  //Etch and Sketch 
+     blank_screen = 1;} 
+  else if (incomingByte == 'f') {                //Drops 
     blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
       window_Control[i][2] = 10;
     }
-  }
-  else if (incomingByte == 'o') {//RGB Sparkle
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 0;
-      second_input = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 0;
-      }
-    }
-  }
-  else if (incomingByte == 'l') { //Strobe 
+  }  
+  else if (incomingByte == 'l') {                //Strobe 
     strobe_value = stobe_height;
     strobe_time = millis();
     is_strobe = true;
   }
-  else if(inChar =='\0') {
-    //Do nothing
-  }
-  else {
-    switch_state = 0;
-  }
+  else if(inChar =='\0') {}                      //Do nothing
+  else { switch_state = 0;}
   return switch_state;
-}
-
-int selectWindowColourMode(int window, int switch_state)
-{
-
 }
 //---------------------------------------------------------------------------------
 // SELECT BEHAVIOR USING THE KEYPAD
 //---------------------------------------------------------------------------------
+//Helper function for KeypadSelectColourMode() 
+void modeSelectKeypad(int switch_state)
+{
+  if(window_behavior_mode == true)
+  {
+      window_Control[window-1][2] = switch_state;
+      window_behavior_mode = false;
+  }
+  else
+  {
+    for (byte i=0; i < NumWindows; i++)
+    {
+      window_Control[i][2] = switch_state;
+    }
+  }
+}
+
 int KeypadSelectColourMode(char incomingByte) {
-  //blank_screen = 1;
+
   lastSerialChar = incomingByte; // Record the last serial char entered
 
   if(incomingByte == '*')
@@ -403,136 +334,24 @@ int KeypadSelectColourMode(char incomingByte) {
     window_behavior_mode = true;
     window = incomingByte - '0';
     window_selection_mode = false;
-    Serial.print("Selected window: ");
-    Serial.println(window);
-  }
-  else if (incomingByte == '1') {//triples
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 1;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 1;
-      }
-    }
-  }
-  else if (incomingByte == 'b') {
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 2;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 2;
-      }
-    }
-  }
-  else if (incomingByte == 'c') {
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 3;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 3;
-      }
-    }
-  }
-  else if (incomingByte == 'd') {
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 5;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 5;
-      }
-    }
-  }
-  else if (incomingByte == '2') {//equalizer
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 7;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 7;
-      }
-    }
-  }
-  else if (incomingByte == '4') {//full screen etch 
-    blank_screen = 1;
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 8;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 8;
-      }
-    }
-  }
-  else if (incomingByte == 'r') {
-    if(window_behavior_mode == true)
-    {
-      window_Control[window-1][2] = 9;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 9;
-      }
-    }
-  }
-  else if (incomingByte == '3') {//drops
+    //Serial.print("Selected window: ");
+    //Serial.println(window);
+  } 
+  else if (incomingByte == '1'){modeSelectKeypad(1);} //Triples
+  else if (incomingByte == '8'){modeSelectKeypad(2);} //Vertical Band 
+  else if (incomingByte == '6'){modeSelectKeypad(5);} //RGB Sparkle
+  else if (incomingByte == '2'){modeSelectKeypad(7);} //Equalizer
+  else if (incomingByte == '5'){modeSelectKeypad(0);} //RGB Sparkle
+  else if (incomingByte == '4')                      
+   {blank_screen = 1;           modeSelectKeypad(8);} //Etch and Sketch
+  else if (incomingByte == '3') {                     //Drops
   blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
       window_Control[i][2] = 10;
     }
   }
-  else if (incomingByte == 'o') {
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = 0;
-      window_behavior_mode = false;
-    }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = 0;
-      }
-    }
-  }
-  else if (incomingByte == 'l') {
-    strobe_value = stobe_height;
-    strobe_time = millis();
-    is_strobe = true;
-  }
-  // else if (incomingByte == 'l') {
-  // strobe_value = stobe_height;
-  // strobe_time = millis();
-  // is_strobe = true;
-  // }
-  else if(inChar =='\0') { // Patryk
-    //Do nothing
-  }
-  else {
-    switch_state = 0;
-  }
+  else if(inChar =='\0') {}                            //Do nothing
+  else {switch_state = 0;}
   return switch_state;
 }
 //---------------------------------------------------------------------------------
