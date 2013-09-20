@@ -121,6 +121,15 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 //Variables used in the keypad to assign individual window behaviors 
 boolean window_selection_mode; //Select the window
 boolean window_behavior_mode; //Select the behavior for that window 
+//---------------------------------------------------------------------------------
+//GEIGER VARIABLES
+//---------------------------------------------------------------------------------
+boolean geiger_mode = false;
+//---------------------------------------------------------------------------------
+//MAKER FAIRE HOMAGE VARIABLES 
+//---------------------------------------------------------------------------------
+byte colorSet[numPixels];
+
 //*****************************************************************************
 // SETUP FUNCTION
 //*****************************************************************************
@@ -282,8 +291,15 @@ int selectColourMode() {
   else if (incomingByte == 'd') {modeSelect(5);} //White Sparkle 
   else if (incomingByte == 'e') {modeSelect(7);} //Equalizer
   else if (incomingByte == 'o') {modeSelect(0);} //Maker Faire Sparkle
+  else if (incomingByte == 'u') {modeSelect(4);} //Maker Faire Homage
   else if (incomingByte == 's') {modeSelect(8);  //Etch and Sketch 
      blank_screen = 1;} 
+  else if (incomingByte == ']')
+   {etch_interaction_mode = !etch_interaction_mode;}   //Toggle Etch Music Interaction Mode
+  else if (incomingByte == '[')
+   {geiger_mode = !geiger_mode;}                       //Toggle Geiger Counter
+  else if (incomingByte == 'p')
+   {blank_screen = 1;            modeSelect(6);} //Photographic Film
   else if (incomingByte == 'f') {                //Drops 
     blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
@@ -342,7 +358,13 @@ int KeypadSelectColourMode(char incomingByte) {
   else if (incomingByte == '6'){modeSelectKeypad(5);} //RGB Sparkle
   else if (incomingByte == '2'){modeSelectKeypad(7);} //Equalizer
   else if (incomingByte == '5'){modeSelectKeypad(0);} //Maker Faire Sparkle
-  else if (incomingByte == '7'){modeSelectKeypad(4);} //Maker Faire Hom
+  else if (incomingByte == '7'){modeSelectKeypad(4);} //Maker Faire Homage
+  else if (incomingByte == '9')
+   {blank_screen = 1;           modeSelectKeypad(6);}  //Photographic Film
+  else if (incomingByte == '#')
+   {etch_interaction_mode = !etch_interaction_mode;}   //Toggle Etch Music Interaction Mode 
+  else if (incomingByte == '0')
+   {geiger_mode = !geiger_mode;}                       //Toggle Geiger Counter 
   else if (incomingByte == '4')                      
    {blank_screen = 1;           modeSelectKeypad(8);} //Etch and Sketch
   else if (incomingByte == '3') {                     //Drops
@@ -420,19 +442,24 @@ void ColourModes(int switch_state, uint8_t audioLev[], int first, int last ) {
     Sparkle(first,last);
   }
   //---------------------------------------------------------------------------------
-  // LOAD IMAGE
-  //---------------------------------------------------------------------------------
-  else if (switch_state == 6) {
-    for (int i= first; i < last;i++) {
-      //strip.setPixelColor(i, red_values[i], green_values[i], blue_values[i]);
-    }
-  }
-  //---------------------------------------------------------------------------------
   // MAKER FAIRE SPARKLE
   //---------------------------------------------------------------------------------
   else if (switch_state == 0) {
     maker_faire(first,last,audioLev);
   }
+  //---------------------------------------------------------------------------------
+  // PHOTOGRAPHIC FILM
+  //---------------------------------------------------------------------------------
+  else if (switch_state == 6) {
+    photo_film(first,last,audioLev);
+  }
+  //---------------------------------------------------------------------------------
+  // MAKER FAIRE HOMAGE
+  //---------------------------------------------------------------------------------
+  else if (switch_state == 4) {
+    maker_homage(first,last,audioLev);
+  }
+  
   //---------------------------------------------------------------------------------
   // EQUALIZER
   //---------------------------------------------------------------------------------
@@ -531,11 +558,13 @@ void strobe()
 //Function has interupt status so it is constantly monitered for input
 void geiger()
 {
-    Serial.println("EVENT");
-    //Initiates the Strobe Behavior
-    strobe_value = stobe_height;
-    strobe_time = millis();
-    is_strobe = true;
+    if(geiger_mode == true)
+    {
+      //Initiates the Strobe Behavior
+      strobe_value = stobe_height;
+      strobe_time = millis();
+      is_strobe = true;
+    }
 }
 
 //---------------------------------------------------------------------------------
@@ -646,34 +675,34 @@ uint8_t readCapacitivePin(int pinToMeasure){
 void Triples(int first, int last, uint8_t audioLev[])
 {
   for (int i=first; i < last ; i+=24) {
-    strip.setPixelColor( i , strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 3, strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 6, strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 9, strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 12, strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 15, strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 18, strobe_value, strobe_value, audioLev[0] + strobe_value);
-    strip.setPixelColor( i + 21, strobe_value, strobe_value, audioLev[0] + strobe_value);
+    strip.setPixelColor( i , strobe_value, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 3, 0, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 6, 0, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 9, 0, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 12, 0, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 15, 0, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 18, 0, 0, audioLev[0] + strobe_value);
+    strip.setPixelColor( i + 21, 0, 0, audioLev[0] + strobe_value);
   }
   for (int i=first+1; i < last; i+=24) {
-    strip.setPixelColor( i , audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 3, audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 6, audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 9, audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 12, audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 15, audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 18, audioLev[1] + strobe_value, strobe_value, strobe_value);
-    strip.setPixelColor( i + 21, audioLev[1] + strobe_value, strobe_value, strobe_value);
+    strip.setPixelColor( i , audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 3, audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 6, audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 9, audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 12, audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 15, audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 18, audioLev[1] + strobe_value, 0, 0);
+    strip.setPixelColor( i + 21, audioLev[1] + strobe_value, 0, 0);
   }
   for (int i=first+2; i < last; i+=24) {
-    strip.setPixelColor( i , strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 3, strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 6, strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 9, strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 12, strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 15, strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 18, strobe_value, audioLev[2] + strobe_value , strobe_value);
-    strip.setPixelColor( i + 21, strobe_value, audioLev[2] + strobe_value , strobe_value);
+    strip.setPixelColor( i , 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 3, 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 6, 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 9, 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 12, 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 15, 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 18, 0, audioLev[2] + strobe_value , 0);
+    strip.setPixelColor( i + 21, 0, audioLev[2] + strobe_value , 0);
   }
 }
 
@@ -711,28 +740,28 @@ void Vertical_Band(int first, int last, char color, uint8_t audioLev[])
   if(color == 'R')
   {
     for (int i=first; i < last ; i+=4) {
-      strip.setPixelColor( i , audioLev[0] + strobe_value, strobe_value, strobe_value);
-      strip.setPixelColor( i + 1, audioLev[0] + strobe_value, strobe_value, strobe_value);
-      strip.setPixelColor( i + 2, audioLev[0] + strobe_value, strobe_value, strobe_value);
-      strip.setPixelColor( i + 3, audioLev[0] + strobe_value, strobe_value, strobe_value);
+      strip.setPixelColor( i , audioLev[0], 0, 0);
+      strip.setPixelColor( i + 1, audioLev[0], 0, 0);
+      strip.setPixelColor( i + 2, audioLev[0], 0, 0);
+      strip.setPixelColor( i + 3, audioLev[0], 0, 0);
     }
   }
   else if(color == 'G')
   {
     for (int i=first; i < last ; i+=4) {
-      strip.setPixelColor( i , strobe_value, audioLev[1] + strobe_value, strobe_value);
-      strip.setPixelColor( i + 1, strobe_value, audioLev[1] + strobe_value, strobe_value);
-      strip.setPixelColor( i + 2, strobe_value, audioLev[1] + strobe_value, strobe_value);
-      strip.setPixelColor( i + 3, strobe_value, audioLev[1] + strobe_value, strobe_value);
+      strip.setPixelColor( i , 0, audioLev[1] , 0);
+      strip.setPixelColor( i + 1, 0, audioLev[1], 0);
+      strip.setPixelColor( i + 2, 0, audioLev[1], 0);
+      strip.setPixelColor( i + 3, 0, audioLev[1], 0);
     }
   }
   else if(color == 'B')
   {
     for (int i=first; i < last ; i+=4) {
-      strip.setPixelColor( i , strobe_value, strobe_value, audioLev[2] + strobe_value);
-      strip.setPixelColor( i + 1, strobe_value, strobe_value, audioLev[2] + strobe_value);
-      strip.setPixelColor( i + 2, strobe_value, strobe_value, audioLev[2] + strobe_value);
-      strip.setPixelColor( i + 3, strobe_value, strobe_value, audioLev[2] + strobe_value);
+      strip.setPixelColor( i , 0, 0, audioLev[2]);
+      strip.setPixelColor( i + 1, 0, 0, audioLev[2]);
+      strip.setPixelColor( i + 2, 0, 0, audioLev[2]);
+      strip.setPixelColor( i + 3, 0, 0, audioLev[2]);
     }
   }
 }
@@ -756,13 +785,78 @@ void maker_faire(int first, int last, uint8_t audioLev[])
   }
 }
 //---------------------------------------------------------------------------------
+// Maker Faire Homage 
+//---------------------------------------------------------------------------------
+void maker_homage(int first, int last, uint8_t audioLev[])
+{
+  for (int k=first; k<last; k++) {
+  int pickRand = random(0,9);
+
+  if (pickRand >= 6) {
+    strip.setPixelColor(k,1,1,1);
+  }
+  else if (pickRand != colorSet[k]) {
+    strip.setPixelColor(k,10,10,10); // Switches coloured pixels back to white.
+  }
+  else {  
+    if (pickRand == 0) {
+      strip.setPixelColor(k,127,0,0);
+    }
+    if (pickRand == 1) {
+      strip.setPixelColor(k,0,100,0);
+    }
+    if (pickRand == 2) {
+      strip.setPixelColor(k,20,20,127);
+    }
+    if (pickRand == 3) { // yellow
+      strip.setPixelColor(k,127,127,0);
+    }
+    if (pickRand == 4) { // magenta
+      strip.setPixelColor(k,127,0,127);
+    }
+    if (pickRand == 5) {  // dark green
+      strip.setPixelColor(k,0,40,0);
+    }
+  }
+   colorSet[k] = pickRand; 
+  }
+  strip.show();
+  delay(200);
+  
+  
+  
+  
+}
+//---------------------------------------------------------------------------------
+// Photographic Film 
+//---------------------------------------------------------------------------------
+void photo_film(int first, int last, uint8_t audioLev[])
+{
+  if (blank_screen == 1)
+  {
+    for (int i=0; i < numPixels; i+=3)
+    {
+      strip.setPixelColor(i, 0, 0, 0);
+      strip.setPixelColor(i+1, 0, 0, 0);
+      strip.setPixelColor(i+2, 0, 0, 0);
+    }
+    blank_screen = 0;
+  }
+   for (int i = 0; i < 10; i++) 
+   {
+      strip.setPixelColor(random(first,last),0,strobe_value,0); 
+      strip.setPixelColor(random(first,last),0,strobe_value,0); 
+      strip.setPixelColor(random(first,last),0,0,0);
+   }
+}
+//---------------------------------------------------------------------------------
 // EQUALIZER
 //---------------------------------------------------------------------------------
 
 void equalizer(int cols, char color, int audioLevel)
 {
   for (int i=(cols-1)*rows; i < (cols)*rows; i=i+1) {
-    strip.setPixelColor(i, strobe_value, strobe_value, strobe_value);
+    strip.setPixelColor(i, 0, 0, 0);
   }
 
   if(color == 'R'){
@@ -801,26 +895,24 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   }
   //Interact to the Music
   if(etch_interaction_mode == true){
-    for (int i = 0; i <= numPixels ; i = i + 2)// This need to be changed to only include the desired region 
+    for (int i = (first_col-1)*32; i <= last_col*32 ; i = i + 2)// This need to be changed to only include the desired region 
     {
       if( counter % 2 == 0)
       {
-        //Serial.println("IN HERE");
         uint32_t packed_color = strip.getPixelColor(i+1);
         uint8_t green = (packed_color >> 16) & 0x7f7f7f;
         uint8_t red =   (packed_color >> 8) & 0x7f7f7f;
         uint8_t blue =  (packed_color) & 0x7f7f7f;
-        strip.setPixelColor(i+1,red * audioLev[0], green * audioLev[1], blue * audioLev[2]);
+        strip.setPixelColor(i+1,red * audioLev[0] * strobe_value, green * audioLev[1] * strobe_value, blue * audioLev[2] * strobe_value);
         strip.setPixelColor(i,packed_color);
       }
       else
       {
-        //Serial.println("IN THERE");
         uint32_t packed_color = strip.getPixelColor(i);
         uint8_t green = (packed_color >> 16) & 0x7f7f7f;
         uint8_t red =   (packed_color >> 8) & 0x7f7f7f;
         uint8_t blue =  (packed_color) & 0x7f7f7f;
-        strip.setPixelColor(i,red * audioLev[0], green * audioLev[1], blue * audioLev[2]);
+        strip.setPixelColor(i,red * audioLev[0] * strobe_value, green * audioLev[1] * strobe_value, blue * audioLev[2] * strobe_value);
         strip.setPixelColor(i+1,packed_color);
       }
     }
