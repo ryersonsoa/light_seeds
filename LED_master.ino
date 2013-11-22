@@ -76,6 +76,7 @@ int pixelFocus = 0; // For tracking location of etch-a-sketch "cursor"
 int cursor_location;
 boolean etch_interaction_mode = true;
 long counter = 0;
+boolean pick_etch_color = false;
 //---------------------------------------------------------------------------------
 // DROPS VARIABLES
 //---------------------------------------------------------------------------------
@@ -111,16 +112,16 @@ const byte COLS = 3; //three columns
 char hexaKeys[ROWS][COLS] =
 {
   {
-    '1','2','3'                      }
+    '1','2','3'                        }
   ,
   {
-    '4','5','6'                      }
+    '4','5','6'                        }
   ,
   {
-    '7','8','9'                      }
+    '7','8','9'                        }
   ,
   {
-    '*','0','#'                      }
+    '*','0','#'                        }
 };
 byte rowPins[ROWS] = {
   15, 16, 17, 18}; //connect to the row pinouts of the keypad
@@ -344,6 +345,7 @@ int selectColourMode() {
   else if (incomingByte == 's') {
     modeSelect(8); //Etch and Sketch
     blank_screen = 1;
+    pick_etch_color = true;
   }
   else if (incomingByte == ']')
   {
@@ -448,6 +450,7 @@ int KeypadSelectColourMode(char incomingByte) {
   else if (incomingByte == '4')
   {
     blank_screen = 1; 
+    pick_etch_color = true;
     modeSelectKeypad(8);
   } //Etch and Sketch
   else if (incomingByte == '3') { //Drops
@@ -984,6 +987,26 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
     }
     blank_screen = 0;
   }
+  
+  while(state_button_player1 == LOW && pick_etch_color == true)
+  {
+    readA2 = analogRead(A8)/3; // Reads a value from 0 to 1023. Scale to be less than 384.
+    etch_color = Wheel(readA2);
+
+    for(int i=0; i < numPixels; i+=3)
+    {
+      strip.setPixelColor(i,etch_color);
+      strip.setPixelColor(i+1,etch_color);
+      strip.setPixelColor(i+2, etch_color);
+    }
+    strip.show();
+    state_button_player1 = digitalRead(pin_button_player1);
+  }
+  pick_etch_color = false;
+  state_button_player1 = LOW;
+
+
+
   //Interact to the Music
   if(etch_interaction_mode == true){
     for (int i = (first_col-1)*32; i <= last_col*32 ; i = i + 2)// This need to be changed to only include the desired region
@@ -1332,6 +1355,7 @@ void screen_color(int first, int last, char input)
   }
   strip.show();
 }
+
 
 
 
