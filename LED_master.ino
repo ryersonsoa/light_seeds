@@ -39,7 +39,8 @@ LPD8806 strip = LPD8806(numPixels);
 //---------------------------------------------------------------------------------
 // DEFAULT WINDOW CONTROL ARRAY
 //---------------------------------------------------------------------------------
-int window_Control[7][3] = {0};
+int window_Control[7][3] = {
+  0};
 int send_first;
 int send_last;
 int window;
@@ -107,29 +108,63 @@ int readA0,readA1,readA2;
 const byte ROWS = 4; //four rows
 const byte COLS = 3; //three columns
 //define the symbols on the buttons of the keypads
-char hexaKeys[ROWS][COLS] = 
+char hexaKeys[ROWS][COLS] =
 {
-  {'1','2','3'},
-  {'4','5','6'},
-  {'7','8','9'},
-  {'*','0','#'}
+  {
+    '1','2','3'                      }
+  ,
+  {
+    '4','5','6'                      }
+  ,
+  {
+    '7','8','9'                      }
+  ,
+  {
+    '*','0','#'                      }
 };
-byte rowPins[ROWS] = {15, 16, 17, 18}; //connect to the row pinouts of the keypad
-byte colPins[COLS] = {19, 20, 21}; //connect to the column pinouts of the keypad
+byte rowPins[ROWS] = {
+  15, 16, 17, 18}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {
+  19, 20, 21}; //connect to the column pinouts of the keypad
 //Create the Keypad object
-Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
-//Variables used in the keypad to assign individual window behaviors 
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+//Variables used in the keypad to assign individual window behaviors
 boolean window_selection_mode; //Select the window
-boolean window_behavior_mode; //Select the behavior for that window 
+boolean window_behavior_mode; //Select the behavior for that window
 //---------------------------------------------------------------------------------
 //GEIGER VARIABLES
 //---------------------------------------------------------------------------------
 boolean geiger_mode = false;
 //---------------------------------------------------------------------------------
-//MAKER FAIRE HOMAGE VARIABLES 
+//MAKER FAIRE HOMAGE VARIABLES
 //---------------------------------------------------------------------------------
 byte colorSet[numPixels];
+//---------------------------------------------------------------------------------
+//BUTTON VARIABLES 
+//---------------------------------------------------------------------------------
+byte pin_button_up = 7;
+byte pin_button_down = 8;
+byte pin_button_left = 9;
+byte pin_button_right = 10;
+byte pin_button_player1 = 11;
+byte pin_button_player2 = 12;
 
+byte state_button_up = LOW;
+byte state_button_down = LOW;
+byte state_button_left = LOW;
+byte state_button_right = LOW;
+byte state_button_player1 = LOW;
+byte state_button_player2 = LOW;
+
+//---------------------------------------------------------------------------------
+//REFLEX GAME VARIABLES
+//---------------------------------------------------------------------------------
+byte player_1_score = 0;
+byte player_2_score = 0;
+byte winning_score = 3;
+int react_time_range = 5000;
+int react_time;
+int timer;
 //*****************************************************************************
 // SETUP FUNCTION
 //*****************************************************************************
@@ -174,7 +209,7 @@ void setup() {
   window_Control[4][2] = 8;
   window_Control[5][2] = 7;
   //window_Control[6][2] = 7;
-  
+
   //---------------------------------------------------------------------------------
   // GEIGER COUNTER INTERRUPT SETUP
   //---------------------------------------------------------------------------------
@@ -188,7 +223,7 @@ void loop() {
 
   //Check the Keypad for input
   char customKey = customKeypad.getKey();
-  
+
   if (Serial.available() > 0){
     selectColourMode(); // Returns "switch_state" variable
   }
@@ -237,11 +272,11 @@ void readAudio(uint8_t audioLev[]) {
 // SCALE AUDIO LEVEL
 //---------------------------------------------------------------------------------
 void scaleAudio(uint8_t audioLev[]) {
-  
-scaleLow = analogRead(A5) / 10;
-scaleMid = analogRead(A4) / 10;
-scaleHigh = analogRead(A3) / 10;
-    
+
+  scaleLow = analogRead(A5) / 10;
+  scaleMid = analogRead(A4) / 10;
+  scaleHigh = analogRead(A3) / 10;
+
   if (audioLev[0] < scaleLow ) {
     audioLev[0] = 0;
   }
@@ -260,20 +295,20 @@ scaleHigh = analogRead(A3) / 10;
 //---------------------------------------------------------------------------------
 // SELECT BEHAVIOR
 //---------------------------------------------------------------------------------
-//Helper function for selectColourMode()   
+//Helper function for selectColourMode()
 void modeSelect(int switch_state)
 {
-    if(second_input == true)
-    {
-      window_Control[window-1][2] = switch_state;
-      second_input = false;
+  if(second_input == true)
+  {
+    window_Control[window-1][2] = switch_state;
+    second_input = false;
+  }
+  else
+  {
+    for (byte i=0; i < NumWindows; i++){
+      window_Control[i][2] = switch_state;
     }
-    else
-    {
-      for (byte i=0; i < NumWindows; i++){
-        window_Control[i][2] = switch_state;
-      }
-    }
+  }
 }
 
 int selectColourMode() {
@@ -285,46 +320,72 @@ int selectColourMode() {
     second_input = true;
     window = incomingByte - '0';
   }
-  else if (incomingByte == 'a') {modeSelect(1);} //Triples
-  else if (incomingByte == 'b') {modeSelect(2);} //Vertical Bar #1
-  else if (incomingByte == 'c') {modeSelect(3);} //Vertical Bar #2 
-  else if (incomingByte == 'd') {modeSelect(5);} //White Sparkle 
-  else if (incomingByte == 'e') {modeSelect(7);} //Equalizer
-  else if (incomingByte == 'o') {modeSelect(0);} //Maker Faire Sparkle
-  else if (incomingByte == 'u') {modeSelect(4);} //Maker Faire Homage
-  else if (incomingByte == 's') {modeSelect(8);  //Etch and Sketch 
-     blank_screen = 1;} 
+  else if (incomingByte == 'a') {
+    modeSelect(1);
+  } //Triples
+  else if (incomingByte == 'b') {
+    modeSelect(2);
+  } //Vertical Bar #1
+  else if (incomingByte == 'c') {
+    modeSelect(3);
+  } //Vertical Bar #2
+  else if (incomingByte == 'd') {
+    modeSelect(5);
+  } //White Sparkle
+  else if (incomingByte == 'e') {
+    modeSelect(7);
+  } //Equalizer
+  else if (incomingByte == 'o') {
+    modeSelect(0);
+  } //Maker Faire Sparkle
+  else if (incomingByte == 'u') {
+    modeSelect(4);
+  } //Maker Faire Homage
+  else if (incomingByte == 's') {
+    modeSelect(8); //Etch and Sketch
+    blank_screen = 1;
+  }
   else if (incomingByte == ']')
-   {etch_interaction_mode = !etch_interaction_mode;}   //Toggle Etch Music Interaction Mode
+  {
+    etch_interaction_mode = !etch_interaction_mode;
+  } //Toggle Etch Music Interaction Mode
   else if (incomingByte == '[')
-   {geiger_mode = !geiger_mode;}                       //Toggle Geiger Counter
+  {
+    geiger_mode = !geiger_mode;
+  } //Toggle Geiger Counter
   else if (incomingByte == 'p')
-   {blank_screen = 1;            modeSelect(6);} //Photographic Film
-  else if (incomingByte == 'f') {                //Drops 
+  {
+    blank_screen = 1; 
+    modeSelect(6);
+  } //Photographic Film
+  else if (incomingByte == 'f') { //Drops
     blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
       window_Control[i][2] = 10;
     }
-  }  
-  else if (incomingByte == 'l') {                //Strobe 
+  }
+  else if (incomingByte == 'l') { //Strobe
     strobe_value = stobe_height;
     strobe_time = millis();
     is_strobe = true;
   }
-  else if(inChar =='\0') {}                      //Do nothing
-  else { switch_state = 0;}
+  else if(inChar =='\0') {
+  } //Do nothing
+  else { 
+    switch_state = 0;
+  }
   return switch_state;
 }
 //---------------------------------------------------------------------------------
 // SELECT BEHAVIOR USING THE KEYPAD
 //---------------------------------------------------------------------------------
-//Helper function for KeypadSelectColourMode() 
+//Helper function for KeypadSelectColourMode()
 void modeSelectKeypad(int switch_state)
 {
   if(window_behavior_mode == true)
   {
-      window_Control[window-1][2] = switch_state;
-      window_behavior_mode = false;
+    window_Control[window-1][2] = switch_state;
+    window_behavior_mode = false;
   }
   else
   {
@@ -352,29 +413,54 @@ int KeypadSelectColourMode(char incomingByte) {
     window_selection_mode = false;
     //Serial.print("Selected window: ");
     //Serial.println(window);
-  } 
-  else if (incomingByte == '1'){modeSelectKeypad(1);} //Triples
-  else if (incomingByte == '8'){modeSelectKeypad(2);} //Vertical Band 
-  else if (incomingByte == '6'){modeSelectKeypad(5);} //RGB Sparkle
-  else if (incomingByte == '2'){modeSelectKeypad(7);} //Equalizer
-  else if (incomingByte == '5'){modeSelectKeypad(0);} //Maker Faire Sparkle
-  else if (incomingByte == '7'){modeSelectKeypad(4);} //Maker Faire Homage
+  }
+  else if (incomingByte == '1'){
+    modeSelectKeypad(1);
+  } //Triples
+  else if (incomingByte == '8'){
+    modeSelectKeypad(2);
+  } //Vertical Band
+  else if (incomingByte == '6'){
+    modeSelectKeypad(5);
+  } //RGB Sparkle
+  else if (incomingByte == '2'){
+    modeSelectKeypad(7);
+  } //Equalizer
+  else if (incomingByte == '5'){
+    modeSelectKeypad(0);
+  } //Maker Faire Sparkle
+  else if (incomingByte == '7'){
+    modeSelectKeypad(9);
+  } //Maker Faire Homage
   else if (incomingByte == '9')
-   {blank_screen = 1;           modeSelectKeypad(6);}  //Photographic Film
+  {
+    blank_screen = 1; 
+    modeSelectKeypad(6);
+  } //Photographic Film
   else if (incomingByte == '#')
-   {etch_interaction_mode = !etch_interaction_mode;}   //Toggle Etch Music Interaction Mode 
+  {
+    etch_interaction_mode = !etch_interaction_mode;
+  } //Toggle Etch Music Interaction Mode
   else if (incomingByte == '0')
-   {geiger_mode = !geiger_mode;}                       //Toggle Geiger Counter 
-  else if (incomingByte == '4')                      
-   {blank_screen = 1;           modeSelectKeypad(8);} //Etch and Sketch
-  else if (incomingByte == '3') {                     //Drops
-  blank_screen = 1;
+  {
+    geiger_mode = !geiger_mode;
+  } //Toggle Geiger Counter
+  else if (incomingByte == '4')
+  {
+    blank_screen = 1; 
+    modeSelectKeypad(8);
+  } //Etch and Sketch
+  else if (incomingByte == '3') { //Drops
+    blank_screen = 1;
     for (byte i=0; i < NumWindows; i++){
       window_Control[i][2] = 10;
     }
   }
-  else if(inChar =='\0') {}                            //Do nothing
-  else {switch_state = 0;}
+  else if(inChar =='\0') {
+  } //Do nothing
+  else {
+    switch_state = 0;
+  }
   return switch_state;
 }
 //---------------------------------------------------------------------------------
@@ -459,7 +545,6 @@ void ColourModes(int switch_state, uint8_t audioLev[], int first, int last ) {
   else if (switch_state == 4) {
     maker_homage(first,last,audioLev);
   }
-  
   //---------------------------------------------------------------------------------
   // EQUALIZER
   //---------------------------------------------------------------------------------
@@ -479,6 +564,12 @@ void ColourModes(int switch_state, uint8_t audioLev[], int first, int last ) {
     int first_cols = first/32 + 1;
     int last_cols = (last - first + 1)/32 + first_cols - 1;
     etch_Sketch(first_cols,last_cols,audioLev);
+  }
+  //---------------------------------------------------------------------------------
+  // REFLEX GAME
+  //---------------------------------------------------------------------------------
+  else if (switch_state == 9) {
+    reflex_game(first,last,audioLev);
   }
   //---------------------------------------------------------------------------------
   // DROPS MODE
@@ -558,13 +649,13 @@ void strobe()
 //Function has interupt status so it is constantly monitered for input
 void geiger()
 {
-    if(geiger_mode == true)
-    {
-      //Initiates the Strobe Behavior
-      strobe_value = stobe_height;
-      strobe_time = millis();
-      is_strobe = true;
-    }
+  if(geiger_mode == true)
+  {
+    //Initiates the Strobe Behavior
+    strobe_value = stobe_height;
+    strobe_time = millis();
+    is_strobe = true;
+  }
 }
 
 //---------------------------------------------------------------------------------
@@ -777,58 +868,58 @@ void maker_faire(int first, int last, uint8_t audioLev[])
     strip.setPixelColor(random(first,last), 127 + strobe_value, 127 + strobe_value, strobe_value); //yellow
     strip.setPixelColor(random(first,last), 127 + strobe_value, strobe_value, 127 + strobe_value); // magenta
     strip.setPixelColor(random(first,last), strobe_value, 40 + strobe_value, strobe_value ); // dark green
-      for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 10; i++){
       strip.setPixelColor(random(first,last),0,0,0);
       strip.setPixelColor(random(first,last),0,0,0);
       strip.setPixelColor(random(first,last),0,0,0);
-      }
+    }
   }
 }
 //---------------------------------------------------------------------------------
-// Maker Faire Homage 
+// Maker Faire Homage
 //---------------------------------------------------------------------------------
 void maker_homage(int first, int last, uint8_t audioLev[])
 {
   for (int k=first; k<last; k++) {
-  int pickRand = random(0,9);
+    int pickRand = random(0,9);
 
-  if (pickRand >= 6) {
-    strip.setPixelColor(k,1,1,1);
-  }
-  else if (pickRand != colorSet[k]) {
-    strip.setPixelColor(k,10,10,10); // Switches coloured pixels back to white.
-  }
-  else {  
-    if (pickRand == 0) {
-      strip.setPixelColor(k,127,0,0);
+    if (pickRand >= 6) {
+      strip.setPixelColor(k,1,1,1);
     }
-    if (pickRand == 1) {
-      strip.setPixelColor(k,0,100,0);
+    else if (pickRand != colorSet[k]) {
+      strip.setPixelColor(k,10,10,10); // Switches coloured pixels back to white.
     }
-    if (pickRand == 2) {
-      strip.setPixelColor(k,20,20,127);
+    else {
+      if (pickRand == 0) {
+        strip.setPixelColor(k,127,0,0);
+      }
+      if (pickRand == 1) {
+        strip.setPixelColor(k,0,100,0);
+      }
+      if (pickRand == 2) {
+        strip.setPixelColor(k,20,20,127);
+      }
+      if (pickRand == 3) { // yellow
+        strip.setPixelColor(k,127,127,0);
+      }
+      if (pickRand == 4) { // magenta
+        strip.setPixelColor(k,127,0,127);
+      }
+      if (pickRand == 5) { // dark green
+        strip.setPixelColor(k,0,40,0);
+      }
     }
-    if (pickRand == 3) { // yellow
-      strip.setPixelColor(k,127,127,0);
-    }
-    if (pickRand == 4) { // magenta
-      strip.setPixelColor(k,127,0,127);
-    }
-    if (pickRand == 5) {  // dark green
-      strip.setPixelColor(k,0,40,0);
-    }
-  }
-   colorSet[k] = pickRand; 
+    colorSet[k] = pickRand;
   }
   strip.show();
   delay(200);
-  
-  
-  
-  
+
+
+
+
 }
 //---------------------------------------------------------------------------------
-// Photographic Film 
+// Photographic Film
 //---------------------------------------------------------------------------------
 void photo_film(int first, int last, uint8_t audioLev[])
 {
@@ -842,12 +933,12 @@ void photo_film(int first, int last, uint8_t audioLev[])
     }
     blank_screen = 0;
   }
-   for (int i = 0; i < 10; i++) 
-   {
-      strip.setPixelColor(random(first,last),0,strobe_value,0); 
-      strip.setPixelColor(random(first,last),0,strobe_value,0); 
-      strip.setPixelColor(random(first,last),0,0,0);
-   }
+  for (int i = 0; i < 10; i++)
+  {
+    strip.setPixelColor(random(first,last),0,strobe_value,0);
+    strip.setPixelColor(random(first,last),0,strobe_value,0);
+    strip.setPixelColor(random(first,last),0,0,0);
+  }
 }
 //---------------------------------------------------------------------------------
 // EQUALIZER
@@ -883,7 +974,7 @@ void equalizer(int cols, char color, int audioLevel)
 //---------------------------------------------------------------------------------
 void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
 {
-   if (blank_screen == 1)
+  if (blank_screen == 1)
   {
     for (int i=0; i < numPixels; i+=3)
     {
@@ -895,14 +986,14 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   }
   //Interact to the Music
   if(etch_interaction_mode == true){
-    for (int i = (first_col-1)*32; i <= last_col*32 ; i = i + 2)// This need to be changed to only include the desired region 
+    for (int i = (first_col-1)*32; i <= last_col*32 ; i = i + 2)// This need to be changed to only include the desired region
     {
       if( counter % 2 == 0)
       {
         uint32_t packed_color = strip.getPixelColor(i+1);
         uint8_t green = (packed_color >> 16) & 0x7f7f7f;
-        uint8_t red =   (packed_color >> 8) & 0x7f7f7f;
-        uint8_t blue =  (packed_color) & 0x7f7f7f;
+        uint8_t red = (packed_color >> 8) & 0x7f7f7f;
+        uint8_t blue = (packed_color) & 0x7f7f7f;
         strip.setPixelColor(i+1,red * audioLev[0] * strobe_value, green * audioLev[1] * strobe_value, blue * audioLev[2] * strobe_value);
         strip.setPixelColor(i,packed_color);
       }
@@ -910,20 +1001,20 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
       {
         uint32_t packed_color = strip.getPixelColor(i);
         uint8_t green = (packed_color >> 16) & 0x7f7f7f;
-        uint8_t red =   (packed_color >> 8) & 0x7f7f7f;
-        uint8_t blue =  (packed_color) & 0x7f7f7f;
+        uint8_t red = (packed_color >> 8) & 0x7f7f7f;
+        uint8_t blue = (packed_color) & 0x7f7f7f;
         strip.setPixelColor(i,red * audioLev[0] * strobe_value, green * audioLev[1] * strobe_value, blue * audioLev[2] * strobe_value);
         strip.setPixelColor(i+1,packed_color);
       }
     }
     counter = counter + 1;
-  } 
-  
+  }
+
   //Determine the Boundries
   int col_range = last_col - first_col + 1;
   colsTot = (col_range) - 1;
   rowsTot = (rows/2) - 1;
- 
+
   // Determine column location.
   readA0 = analogRead(A6);
   col = ((long)readA0*((long)colsTot+1))/sensorMax ;
@@ -938,7 +1029,7 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   if (readA1 == sensorMax) {
     row = rowsTot;
   }
- 
+
   // Check if pixelFocus has changed its location.
   if ( (col != colPrev) || (row != rowPrev) ) {
     pixelChange = 1;
@@ -952,7 +1043,7 @@ void etch_Sketch(int first_col, int last_col, uint8_t audioLev[])
   pixelFocus = (rowsTot+1)*col+row;
   strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2),etch_color);
   strip.setPixelColor(map_coord((first_col-1)*rows + pixelFocus*2+1),etch_color);
- 
+
   //Paint the Previous Pixels
   if (pixelChange == 1) {
     pixelPrev = (rowsTot+1)*colPrev+rowPrev;
@@ -1062,3 +1153,190 @@ void rain_Drops(int first, int last, uint8_t audioLev[])
     }
   }
 }
+
+//---------------------------------------------------------------------------------
+// REFLEX GAME
+//---------------------------------------------------------------------------------
+
+void reflex_game(int first, int last, uint8_t audioLev[])
+{
+
+  //int pin_button_up = 7;
+  //int pin_button_down = 8;
+  //int pin_button_left = 9;
+  //int pin_button_right = 10;
+  //int pin_button_player1 = 11;
+  //int pin_button_player2 = 12;
+  //
+  //int state_button_up = HIGH;
+  //int state_button_down = HIGH;
+  //int state_button_left = HIGH;
+  //int state_button_right = HIGH;
+  //int state_button_player1 = HIGH;
+  //int state_button_player2 = HIGH;
+
+  //int react_time_range = 5000;
+  //int react_time;
+  //int timer;
+
+  //Reading the button states 
+  //  state_button_player1 = digitalRead(pin_button_player1);
+  //  state_button_player2 = digitalRead(pin_button_player2);
+
+  Serial.println("ENTERED REACTION GAME");
+  byte game_over = 0;
+
+  while (game_over == 0)
+  {
+    //Reset the Screen
+    screen_color(first, last, 'N');
+
+    //Set the Reaction Time
+    react_time = random(1000,react_time_range);
+    //Can't use screen_color function because strip.show() is part of it 
+    //and it may introduce to much delay for a fair reaction game.
+
+    for(int i=first; i < last/4; i++){
+      strip.setPixelColor(i, strip.Color(100,0, 0));
+      strip.setPixelColor(last*1/4 + i, strip.Color(100,0, 0));
+      strip.setPixelColor(last*2/4 + i, strip.Color(100,0, 0));
+      strip.setPixelColor(last*3/4 + i, strip.Color(100,0, 0));
+    }
+
+    //Reaction Trigger
+    delay(react_time);
+    strip.show();
+    Serial.println("HUMAN REACT NOW");
+
+    while(state_button_player1 == LOW && state_button_player2 == LOW)
+    {
+      state_button_player1 = digitalRead(pin_button_player1);
+      state_button_player2 = digitalRead(pin_button_player2);
+    }
+
+    //Determine the Round Winner
+    if ((state_button_player1 == HIGH) && (state_button_player2 == HIGH))
+    {
+      Serial.println("ITS A TIE");
+    }
+    else if(state_button_player1 == HIGH)
+    {
+      Serial.println("Player 1 Won This round");
+      player_1_score = player_1_score + 1;
+
+      for (int blinks = 0 ; blinks < 1; blinks++)
+      {
+        screen_color(first, last, 'N');
+        delay(300);
+        screen_color(first, last, 'G');
+        delay(500);
+      }
+    }
+    else if(state_button_player2 == HIGH)
+    {
+      Serial.println("Player 2 Won This round");
+      player_2_score = player_2_score + 1;
+
+      for (int blinks = 0 ; blinks < 1; blinks++)
+      {
+        screen_color(first, last, 'N');
+        delay(300);
+        screen_color(first, last, 'B');
+        delay(500);
+      }
+    }
+
+    state_button_player1 = LOW;
+    state_button_player2 = LOW;
+    //Determine the Game Winner
+
+    if(player_1_score == winning_score)
+    {
+      Serial.println("Player 1 Won the game");
+      player_1_score = 0;
+      player_2_score = 0;
+      game_over = 1;
+
+      for(int number=0; number < 20; number++){     
+        for(int i=first; i < last/4; i++){
+          int color = random(0,65);
+          strip.setPixelColor(i, strip.Color(0, color, 0));
+          strip.setPixelColor(last*1/4 + i, strip.Color(0, color, 0));
+          strip.setPixelColor(last*2/4 + i, strip.Color(0, color, 0));
+          strip.setPixelColor(last*3/4 + i, strip.Color(0, color, 0));
+        }
+        strip.show();
+      }
+    }
+    else if(player_2_score == winning_score)
+    {
+      Serial.println("Player 2 Won the game");
+      player_1_score = 0;
+      player_2_score = 0;
+      game_over = 1;
+
+      for(int number=0; number < 20; number++)    { 
+        for(int i=first; i < last/4; i++){
+          int color = random(0,65);
+          strip.setPixelColor(i, strip.Color(0, 0, color));
+          strip.setPixelColor(last*1/4 + i, strip.Color(0, 0, color));
+          strip.setPixelColor(last*2/4 + i, strip.Color(0, 0, color));
+          strip.setPixelColor(last*3/4 + i, strip.Color(0, 0, color));
+        }
+        strip.show();
+      }
+    }
+  }
+  for (byte i=0; i < NumWindows; i++){
+    window_Control[i][2] = 1;
+  }
+}
+
+void screen_color(int first, int last, char input)
+{
+  if( input == 'R')
+  {
+    for(int i=first; i < last/4; i++){
+      strip.setPixelColor(i, strip.Color(100,0,0));
+      strip.setPixelColor(last*1/4 + i, strip.Color(100,0,0));
+      strip.setPixelColor(last*2/4 + i, strip.Color(100,0,0));
+      strip.setPixelColor(last*3/4 + i, strip.Color(100,0,0));
+    }
+  }
+  else if(input == 'B')
+  {
+    for(int i=first; i < last/4; i++){
+      strip.setPixelColor(i, strip.Color(0,0,100));
+      strip.setPixelColor(last*1/4 + i, strip.Color(0,0,100));
+      strip.setPixelColor(last*2/4 + i, strip.Color(0,0,100));
+      strip.setPixelColor(last*3/4 + i, strip.Color(0,0,100));
+    }
+  }
+  else if (input == 'G')
+  {
+    for(int i=first; i < last/4; i++){
+      strip.setPixelColor(i, strip.Color(0,100,0));
+      strip.setPixelColor(last*1/4 + i, strip.Color(0,100,0));
+      strip.setPixelColor(last*2/4 + i, strip.Color(0,100,0));
+      strip.setPixelColor(last*3/4 + i, strip.Color(0,100,0));
+    }
+  }
+  else if (input == 'N')
+  {
+    for(int i=first; i < last/4; i++){
+      strip.setPixelColor(i, strip.Color(0,0,0));
+      strip.setPixelColor(last*1/4 + i, strip.Color(0,0,0));
+      strip.setPixelColor(last*2/4 + i, strip.Color(0,0,0));
+      strip.setPixelColor(last*3/4 + i, strip.Color(0,0,0));
+    }
+  }
+  strip.show();
+}
+
+
+
+
+
+
+
+
